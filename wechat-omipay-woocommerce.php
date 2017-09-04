@@ -100,6 +100,8 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             ? 'https://www.omipay.com.au/omipay/api/v1/MakeQRCode' #https://secure.authorize.net/gateway/transact.dll
             : 'https://www.omipay.com.au/omipay/api/v1/QueryOrder'; #https://test.authorize.net/gateway/transact.dll
 
+        $nonced_url = wp_nonce_url( $environment_url, 'WHA_WeChat_Checkout_'.$order_id, 'nonce_str' );
+
         // This is where the fun stuff begins
         $payload = array(
             // OmiPay Credentials and API Info
@@ -152,8 +154,9 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         );
 
         // Send this payload to OmiPay for processing
-        $response = wp_remote_post( $environment_url, array(
+        $response = wp_remote_post( $nonced_url, array(
             'method'    => 'POST',
+            'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
             'body'      => http_build_query( $payload ),
             'timeout'   => 90,
             'sslverify' => false,
