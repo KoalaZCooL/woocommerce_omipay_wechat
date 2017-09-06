@@ -22,7 +22,7 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         $this->has_fields = true;
 
         // support default form with credit card
-        $this->supports = array( 'default_credit_card_form' );
+        $this->supports = array( 'qr_code' );
 
         // setting defines
         $this->init_form_fields();
@@ -57,18 +57,18 @@ class wechat_OmiPay extends WC_Payment_Gateway {
                 'title'		=> __( 'Title', 'wechat-omipay' ),
                 'type'		=> 'text',
                 'desc_tip'	=> __( 'Payment title of checkout process.', 'wechat-omipay' ),
-                'default'	=> __( 'Credit card', 'wechat-omipay' ),
+                'default'	=> __( 'WeChat Pay', 'wechat-omipay' ),
             ),
             'description' => array(
                 'title'		=> __( 'Description', 'wechat-omipay' ),
                 'type'		=> 'textarea',
                 'desc_tip'	=> __( 'Payment title of checkout process.', 'wechat-omipay' ),
-                'default'	=> __( 'Successfully payment through credit card.', 'wechat-omipay' ),
+                'default'	=> __( 'Successfull payment through WeChat.', 'wechat-omipay' ),
                 'css'		=> 'max-width:450px;'
             ),
             'merchant_number' => array(
-                'title'		=> __( 'OmiPay Merchant Number', 'wechat-omipay' ),
-                'type'		=> 'text',
+                'title'		=> __( 'OmiPay Merchant ID (Numbers only!)', 'wechat-omipay' ),
+                'type'		=> 'numeric',
                 'desc_tip'	=> __( 'This is the Merchant Number provided by OmiPay when you signed up for an account.', 'wechat-omipay' ),
             ),
             'secret_key' => array(
@@ -92,26 +92,45 @@ class wechat_OmiPay extends WC_Payment_Gateway {
 
         $customer_order = new WC_Order( $order_id );
 
-        // checking for transaction
-        $showing_debug = ( $this->showing_debug == "yes" ) ? 'TRUE' : 'FALSE';
+        $this->nonce_str = str_replace('?=','', wp_nonce_url( '', 'WHA_WeChat_Checkout_'.$order_id, '' ) );
+
+        $TZ_orig = date_default_timezone_get();
+
+        #MAKE EST
+        date_default_timezone_set('EST');
+        $TZ_tgt = date('T');
+
+        #MAKEMILLISECOND
+        $timestamp = time()*1000;
+
+        #REVERT TZ ORIG
+        date_default_timezone_set($TZ_orig);
+
+        $sign = $this->gen_signature($timestamp);
+        $verifying_sig = http_build_query([
+            'm_number'  => $this->merchant_number,
+            'timestamp' => $timestamp,
+            'nonce_str' => $this->nonce_str,
+            'sign'      => $sign
+        ]);
 
         // Decide which URL to post to
-        $gateway_endpoint_url = ( "FALSE" == $showing_debug )
-            ? 'https://www.omipay.com.au/omipay/api/v1/MakeQRCode' #https://secure.authorize.net/gateway/transact.dll
-            : 'https://www.omipay.com.au/omipay/api/v1/QueryOrder'; #https://test.authorize.net/gateway/transact.dll
-
-        $nonced_url = wp_nonce_url( $gateway_endpoint_url, 'WHA_WeChat_Checkout_'.$order_id, 'nonce_str' );
+        $gateway_rate = 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate';
+        $gateway_rate;
+        $gateway_QR = 'https://www.omipay.com.au/omipay/api/v1/MakeQRCode';
+        $gateway_QR;
+        $gateway_query = 'https://www.omipay.com.au/omipay/api/v1/QueryOrder';
+        $gateway_query;
+        $gateway_endpoint = $gateway_rate;
 
         // This is where the fun stuff begins
         $payload = array(
             // OmiPay Credentials and API Info
-            "x_tran_key"           	=> $this->secret_key,
-            "x_login"              	=> $this->merchant_number,
-            "x_version"            	=> "3.1",
 
             // Order total
             "x_amount"             	=> $customer_order->order_total,
 
+/* OmiPay do not need these
             // Credit Card Information
             "x_card_num"           	=> str_replace( array(' ', '-' ), '', $_POST['wechat_omipay-card-number'] ),
             "x_card_code"          	=> ( isset( $_POST['wechat_omipay-card-cvc'] ) ) ? $_POST['wechat_omipay-card-cvc'] : '',
@@ -150,17 +169,20 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             // information customer
             "x_cust_id"            	=> $customer_order->user_id,
             "x_customer_ip"        	=> $_SERVER['REMOTE_ADDR'],
-
+//*///
         );
 
         // Send this payload to OmiPay for processing
-        $response = wp_remote_post( $nonced_url, array(
+        $gateway_request_url = $gateway_endpoint.'?'.$verifying_sig;
+        $response = wp_remote_post( $gateway_request_url, array(
             'method'    => 'POST',
             'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
-            'body'      => http_build_query( $payload ),
+//            'body'      => http_build_query( $payload ),
             'timeout'   => 90,
             'sslverify' => false,
         ) );
+
+        throw new Exception( __( '<pre style="color: blue">'.print_r([$TZ_orig,$TZ_tgt,$verifying_sig, $response],1).'</pre>', 'wechat-omipay' ) );
 
         if ( is_wp_error( $response ) )
             throw new Exception( __( 'There is issue for connecting payment gateway. Sorry for the inconvenience.', 'wechat-omipay' ) );
@@ -197,10 +219,11 @@ class wechat_OmiPay extends WC_Payment_Gateway {
                 'result'   => 'success',
                 'redirect' => $this->get_return_url( $customer_order ),
             );
-        } else {
+        } else
+        {
             //transaction fail
-            wc_add_notice( $r['response_reason_text'], 'error' );
-            $customer_order->add_order_note( 'Error: '. $r['response_reason_text'] );
+            wc_add_notice( 'test notice<br>with html', 'error' );
+            $customer_order->add_order_note( 'Error:<br>add order note html' );
         }
 
     }
@@ -218,4 +241,9 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         }
     }
 
+    private function gen_signature($timestamp)
+    {
+        $gen_sig = strtoupper(md5("{$this->merchant_number}&{$timestamp}&{$this->nonce_str}&{$this->secret_key}") );
+        return $gen_sig;
+    }
 }
