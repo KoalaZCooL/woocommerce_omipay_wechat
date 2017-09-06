@@ -66,21 +66,21 @@ class wechat_OmiPay extends WC_Payment_Gateway {
                 'default'	=> __( 'Successfully payment through credit card.', 'wechat-omipay' ),
                 'css'		=> 'max-width:450px;'
             ),
-            'api_login' => array(
-                'title'		=> __( 'OmiPay API Login', 'wechat-omipay' ),
+            'merchant_number' => array(
+                'title'		=> __( 'OmiPay Merchant Number', 'wechat-omipay' ),
                 'type'		=> 'text',
-                'desc_tip'	=> __( 'This is the API Login provided by OmiPay when you signed up for an account.', 'wechat-omipay' ),
+                'desc_tip'	=> __( 'This is the Merchant Number provided by OmiPay when you signed up for an account.', 'wechat-omipay' ),
             ),
-            'trans_key' => array(
-                'title'		=> __( 'OmiPay Transaction Key', 'wechat-omipay' ),
+            'secret_key' => array(
+                'title'		=> __( 'OmiPay API Secret Key', 'wechat-omipay' ),
                 'type'		=> 'password',
-                'desc_tip'	=> __( 'This is the Transaction Key provided by OmiPay when you signed up for an account.', 'wechat-omipay' ),
+                'desc_tip'	=> __( 'This is the API Secret Key provided by OmiPay when you signed up for an account.', 'wechat-omipay' ),
             ),
-            'environment' => array(
-                'title'		=> __( 'OmiPay Test Mode', 'wechat-omipay' ),
-                'label'		=> __( 'Enable Test Mode', 'wechat-omipay' ),
+            'showing_debug' => array(
+                'title'		=> __( 'Plugin Debug Mode', 'wechat-omipay' ),
+                'label'		=> __( 'Enable Debug Mode', 'wechat-omipay' ),
                 'type'		=> 'checkbox',
-                'description' => __( 'This is the test mode of gateway.', 'wechat-omipay' ),
+                'description' => __( 'Show Plugin Debugger. [OmiPay has NO test gateway] ', 'wechat-omipay' ),
                 'default'	=> 'no',
             )
         );
@@ -92,21 +92,21 @@ class wechat_OmiPay extends WC_Payment_Gateway {
 
         $customer_order = new WC_Order( $order_id );
 
-        // checking for transiction
-        $environment = ( $this->environment == "yes" ) ? 'TRUE' : 'FALSE';
+        // checking for transaction
+        $showing_debug = ( $this->showing_debug == "yes" ) ? 'TRUE' : 'FALSE';
 
         // Decide which URL to post to
-        $environment_url = ( "FALSE" == $environment )
+        $gateway_endpoint_url = ( "FALSE" == $showing_debug )
             ? 'https://www.omipay.com.au/omipay/api/v1/MakeQRCode' #https://secure.authorize.net/gateway/transact.dll
             : 'https://www.omipay.com.au/omipay/api/v1/QueryOrder'; #https://test.authorize.net/gateway/transact.dll
 
-        $nonced_url = wp_nonce_url( $environment_url, 'WHA_WeChat_Checkout_'.$order_id, 'nonce_str' );
+        $nonced_url = wp_nonce_url( $gateway_endpoint_url, 'WHA_WeChat_Checkout_'.$order_id, 'nonce_str' );
 
         // This is where the fun stuff begins
         $payload = array(
             // OmiPay Credentials and API Info
-            "x_tran_key"           	=> $this->trans_key,
-            "x_login"              	=> $this->api_login,
+            "x_tran_key"           	=> $this->secret_key,
+            "x_login"              	=> $this->merchant_number,
             "x_version"            	=> "3.1",
 
             // Order total
@@ -119,7 +119,7 @@ class wechat_OmiPay extends WC_Payment_Gateway {
 
             "x_type"               	=> 'AUTH_CAPTURE',
             "x_invoice_num"        	=> str_replace( "#", "", $customer_order->get_order_number() ),
-            "x_test_request"       	=> $environment,
+            "x_test_request"       	=> $showing_debug,
             "x_delim_char"         	=> '|',
             "x_encap_char"         	=> '',
             "x_delim_data"         	=> "TRUE",
