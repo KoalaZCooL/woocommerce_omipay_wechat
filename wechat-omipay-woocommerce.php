@@ -98,7 +98,7 @@ class wechat_OmiPay extends WC_Payment_Gateway {
 
         #MAKE EST
         date_default_timezone_set('EST');
-        $TZ_tgt = date('T');
+        $TZ_tgt = date('T_').$order_id;
 
         #MAKEMILLISECOND
         $timestamp = time()*1000;
@@ -107,21 +107,34 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         date_default_timezone_set($TZ_orig);
 
         $sign = $this->gen_signature($timestamp);
-        $verifying_sig = http_build_query([
+        $verifying_sig = [
             'm_number'  => $this->merchant_number,
             'timestamp' => $timestamp,
             'nonce_str' => $this->nonce_str,
             'sign'      => $sign
-        ]);
+        ];
 
         // Decide which URL to post to
         $gateway_rate = 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate';
         $gateway_rate;
-        $gateway_QR = 'https://www.omipay.com.au/omipay/api/v1/MakeQRCode';
+        $gateway_QR = 'https://www.omipay.com.au/omipay/api/v1/MakeQROrder';
         $gateway_QR;
+        $QR_params = [
+            'order_name'    => 'X_'.'WooCommerce_Checkout_Order',
+            'amount'        => 1, #in CENTS AUD
+
+            #Notification URL for transaction success.
+            #When this order is pay succeed, will send a notification to such URL.
+            'notify_url'    => 'http://www.digitaljunglegroup.com/test/omipay_notif_stream.php',
+
+            #The notification data of transaction would include this field.
+            #So, it best be unique, in order to identify the order.
+            'out_order_no'  => 'out order to omipay okay got it'
+        ];
+        $gateway_params = http_build_query(array_merge($verifying_sig,$QR_params));
         $gateway_query = 'https://www.omipay.com.au/omipay/api/v1/QueryOrder';
         $gateway_query;
-        $gateway_endpoint = $gateway_rate;
+        $gateway_endpoint = $gateway_QR;
 
         // This is where the fun stuff begins
         $payload = array(
@@ -173,7 +186,7 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         );
 
         // Send this payload to OmiPay for processing
-        $gateway_request_url = $gateway_endpoint.'?'.$verifying_sig;
+        $gateway_request_url = $gateway_endpoint.'?'.$gateway_params;
         $response = wp_remote_post( $gateway_request_url, array(
             'method'    => 'POST',
             'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
@@ -182,7 +195,7 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             'sslverify' => false,
         ) );
 
-        throw new Exception( __( '<pre style="color: blue">'.print_r([$TZ_orig,$TZ_tgt,$verifying_sig, $response],1).'</pre>', 'wechat-omipay' ) );
+        throw new Exception( __( '<pre style="color: blue">'.print_r([$TZ_orig, $TZ_tgt, $verifying_sig, $response],1).'</pre>', 'wechat-omipay' ) );
 
         if ( is_wp_error( $response ) )
             throw new Exception( __( 'There is issue for connecting payment gateway. Sorry for the inconvenience.', 'wechat-omipay' ) );
