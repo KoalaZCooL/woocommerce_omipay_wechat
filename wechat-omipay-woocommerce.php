@@ -136,55 +136,6 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         $gateway_query;
         $gateway_endpoint = $gateway_QR;
 
-        // This is where the fun stuff begins
-        $payload = array(
-            // OmiPay Credentials and API Info
-
-            // Order total
-            "x_amount"             	=> $customer_order->order_total,
-
-/* OmiPay do not need these
-            // Credit Card Information
-            "x_card_num"           	=> str_replace( array(' ', '-' ), '', $_POST['wechat_omipay-card-number'] ),
-            "x_card_code"          	=> ( isset( $_POST['wechat_omipay-card-cvc'] ) ) ? $_POST['wechat_omipay-card-cvc'] : '',
-            "x_exp_date"           	=> str_replace( array( '/', ' '), '', $_POST['wechat_omipay-card-expiry'] ),
-
-            "x_type"               	=> 'AUTH_CAPTURE',
-            "x_invoice_num"        	=> str_replace( "#", "", $customer_order->get_order_number() ),
-            "x_test_request"       	=> $showing_debug,
-            "x_delim_char"         	=> '|',
-            "x_encap_char"         	=> '',
-            "x_delim_data"         	=> "TRUE",
-            "x_relay_response"     	=> "FALSE",
-            "x_method"             	=> "CC",
-
-            // Billing Information
-            "x_first_name"         	=> $customer_order->billing_first_name,
-            "x_last_name"          	=> $customer_order->billing_last_name,
-            "x_address"            	=> $customer_order->billing_address_1,
-            "x_city"              	=> $customer_order->billing_city,
-            "x_state"              	=> $customer_order->billing_state,
-            "x_zip"                	=> $customer_order->billing_postcode,
-            "x_country"            	=> $customer_order->billing_country,
-            "x_phone"              	=> $customer_order->billing_phone,
-            "x_email"              	=> $customer_order->billing_email,
-
-            // Shipping Information
-            "x_ship_to_first_name" 	=> $customer_order->shipping_first_name,
-            "x_ship_to_last_name"  	=> $customer_order->shipping_last_name,
-            "x_ship_to_company"    	=> $customer_order->shipping_company,
-            "x_ship_to_address"    	=> $customer_order->shipping_address_1,
-            "x_ship_to_city"       	=> $customer_order->shipping_city,
-            "x_ship_to_country"    	=> $customer_order->shipping_country,
-            "x_ship_to_state"      	=> $customer_order->shipping_state,
-            "x_ship_to_zip"        	=> $customer_order->shipping_postcode,
-
-            // information customer
-            "x_cust_id"            	=> $customer_order->user_id,
-            "x_customer_ip"        	=> $_SERVER['REMOTE_ADDR'],
-//*///
-        );
-
         // Send this payload to OmiPay for processing
         $gateway_request_url = $gateway_endpoint.'?'.$gateway_params;
         $response = wp_remote_post( $gateway_request_url, array(
@@ -195,8 +146,6 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             'sslverify' => false,
         ) );
 
-        throw new Exception( __( '<pre style="color: blue">'.print_r([$TZ_orig, $TZ_tgt, $verifying_sig, $response],1).'</pre>', 'wechat-omipay' ) );
-
         if ( is_wp_error( $response ) )
             throw new Exception( __( 'There is issue for connecting payment gateway. Sorry for the inconvenience.', 'wechat-omipay' ) );
 
@@ -204,41 +153,9 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             throw new Exception( __( 'OmiPay\'s Response was not get any data.', 'wechat-omipay' ) );
 
         // get body response while get not error
-        $response_body = wp_remote_retrieve_body( $response );
+        $response_body = json_decode(wp_remote_retrieve_body($response) );
 
-        foreach ( preg_split( "/\r?\n/", $response_body ) as $line ) {
-            $resp = explode( "|", $line );
-        }
-
-        // values get
-        $r['response_code']             = $resp[0];
-        $r['response_sub_code']         = $resp[1];
-        $r['response_reason_code']      = $resp[2];
-        $r['response_reason_text']      = $resp[3];
-
-        // 1 or 4 means the transaction was a success
-        if ( ( $r['response_code'] == 1 ) || ( $r['response_code'] == 4 ) ) {
-            // Payment successful
-            $customer_order->add_order_note( __( 'OmiPay complete payment.', 'wechat-omipay' ) );
-
-            // paid order marked
-            $customer_order->payment_complete();
-
-            // this is important part for empty cart
-            $woocommerce->cart->empty_cart();
-
-            // Redirect to thank you page
-            return array(
-                'result'   => 'success',
-                'redirect' => $this->get_return_url( $customer_order ),
-            );
-        } else
-        {
-            //transaction fail
-            wc_add_notice( 'test notice<br>with html', 'error' );
-            $customer_order->add_order_note( 'Error:<br>add order note html' );
-        }
-
+        wc_add_notice( $this->gen_qrcode_string($response_body->qrcode), 'error' );
     }
 
     // Validate fields
@@ -258,5 +175,15 @@ class wechat_OmiPay extends WC_Payment_Gateway {
     {
         $gen_sig = strtoupper(md5("{$this->merchant_number}&{$timestamp}&{$this->nonce_str}&{$this->secret_key}") );
         return $gen_sig;
+    }
+
+    #https://stackoverflow.com/questions/5943368/dynamically-generating-a-qr-code-with-php
+    public function gen_qrcode_string($string)
+    {
+        $str = urlencode($string);
+        return <<<QRC
+<img src="https://chart.googleapis.com/chart?chs=256x256&cht=qr&chl=$str&choe=UTF-8"/>
+<p>$string</p>
+QRC;
     }
 }
