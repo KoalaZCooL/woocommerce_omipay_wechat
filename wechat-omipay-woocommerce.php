@@ -60,10 +60,10 @@ class wechat_OmiPay extends WC_Payment_Gateway {
                 'default'	=> __( 'WeChat Pay', 'wechat-omipay' ),
             ),
             'description' => array(
-                'title'		=> __( 'Description', 'wechat-omipay' ),
+                'title'		=> __( 'Description (can be HTML)', 'wechat-omipay' ),
                 'type'		=> 'textarea',
-                'desc_tip'	=> __( 'Payment title of checkout process.', 'wechat-omipay' ),
-                'default'	=> __( 'Successfull payment through WeChat.', 'wechat-omipay' ),
+                'desc_tip'	=> __( 'Payment description of checkout process.', 'wechat-omipay' ),
+                'default'	=> __( '<p>微信支付</p><p>Pay via WeChatPay</p>', 'wechat-omipay' ),
                 'css'		=> 'max-width:450px;'
             ),
             'merchant_number' => array(
@@ -117,10 +117,11 @@ class wechat_OmiPay extends WC_Payment_Gateway {
         // Decide which URL to post to
         $gateway_rate = 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate';
         $gateway_rate;
+
+// STEP 1. GENERATE WeChat OmiPay QR CODE
         $gateway_QR = 'https://www.omipay.com.au/omipay/api/v1/MakeQROrder';
-        $gateway_QR;
         $QR_params = [
-            'order_name'    => 'X_'.'WooCommerce_Checkout_Order',
+            'order_name'    => get_site_url().'_Checkout_Order',
             'amount'        => 1, #in CENTS AUD
 
             #Notification URL for transaction success.
@@ -131,17 +132,14 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             #So, it best be unique, in order to identify the order.
             'out_order_no'  => 'out order to omipay okay got it'
         ];
-        $gateway_params = http_build_query(array_merge($verifying_sig,$QR_params));
-        $gateway_query = 'https://www.omipay.com.au/omipay/api/v1/QueryOrder';
-        $gateway_query;
-        $gateway_endpoint = $gateway_QR;
 
-        // Send this payload to OmiPay for processing
-        $gateway_request_url = $gateway_endpoint.'?'.$gateway_params;
-        $response = wp_remote_post( $gateway_request_url, array(
+        $gateway_params = http_build_query(array_merge($verifying_sig,$QR_params));
+
+        $gateway_QR_request_url = $gateway_QR.'?'.$gateway_params;
+        $response = wp_remote_post( $gateway_QR_request_url, array(
             'method'    => 'POST',
             'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
-//            'body'      => http_build_query( $payload ),
+            #'body'      => http_build_query( $payload ),
             'timeout'   => 90,
             'sslverify' => false,
         ) );
@@ -153,9 +151,55 @@ class wechat_OmiPay extends WC_Payment_Gateway {
             throw new Exception( __( 'OmiPay\'s Response was not get any data.', 'wechat-omipay' ) );
 
         // get body response while get not error
-        $response_body = json_decode(wp_remote_retrieve_body($response) );
+        // eg. {"return_code":"SUCCESS","order_no":"WE1709125547112092","qrcode":"weixin://wxpay/bizpayurl?pr=edxyXOf"}
+        $qr_response_body = json_decode(wp_remote_retrieve_body($response) );
+        $OmiPay_order_no = $qr_response_body->order_no;
+        $OmiPay_qrcode_str = $qr_response_body->qrcode;
 
-        wc_add_notice( $this->gen_qrcode_string($response_body->qrcode), 'error' );
+// STEP 2. CHECK  WeChat OmiPay PAYMENT STATUS
+        $gateway_params = http_build_query(array_merge($verifying_sig,['order_no'=>$OmiPay_order_no]));
+        $gateway_query = 'https://www.omipay.com.au/omipay/api/v1/QueryOrder';
+        $gateway_query_order_url = $gateway_query.'?'.$gateway_params;
+        $payment_response = wp_remote_post( $gateway_query_order_url, array(
+            'method'    => 'POST',
+            'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
+            #'body'      => http_build_query( $payload ),
+            'timeout'   => 90,
+            'sslverify' => false,
+        ) );
+
+        if ( is_wp_error( $payment_response ) )
+            throw new Exception( __( 'There is issue for connecting payment gateway. Sorry for the inconvenience.', 'wechat-omipay' ) );
+
+        if ( empty( $payment_response['body'] ) )
+            throw new Exception( __( 'OmiPay\'s Response was not get any data.', 'wechat-omipay' ) );
+
+        $payment_response_body = json_decode(wp_remote_retrieve_body($payment_response) );
+
+        if('PAYED'===$payment_response_body->result_code ||'CLOSED'===$payment_response_body->result_code ){
+// STEP 3. PAYMENT COMPLETE
+            $customer_order->payment_complete();
+
+            // Reduce stock levels
+            $customer_order->reduce_order_stock();
+
+            // this is important part for empty cart
+            $woocommerce->cart->empty_cart();
+
+            return array(
+                'result' => 'success',
+                'redirect' => $this->get_return_url( $customer_order )
+            );
+        }else{
+// STEP TO SHOW QRCODE
+            wc_add_notice( $this->gen_qrcode_string($OmiPay_qrcode_str), 'error' );
+        }
+
+// SHOW ON DEBUG MODE
+        if('yes'===$this->showing_debug){
+            wc_add_notice( '<pre>'.print_r($qr_response_body,1).'</pre>', 'success' );
+            wc_add_notice( '<pre>'.print_r($payment_response_body,1).'</pre>', 'success' );
+        }
     }
 
     // Validate fields
@@ -182,8 +226,8 @@ class wechat_OmiPay extends WC_Payment_Gateway {
     {
         $str = urlencode($string);
         return <<<QRC
-<img src="https://chart.googleapis.com/chart?chs=256x256&cht=qr&chl=$str&choe=UTF-8"/>
-<p>$string</p>
+<img src="https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=$str&choe=UTF-8"/><br>
+<span style="color:green;background-color: greenyellow; padding: 4px; border-radius: 11px;"><strong>Please scan the QRcode with WeChat to complete the order</strong></span>
 QRC;
     }
 }

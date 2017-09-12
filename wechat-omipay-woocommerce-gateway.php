@@ -3,7 +3,7 @@
 Plugin Name: WeChat Pay - OmiPay WooCommerce Payment Gateway
 Plugin URI: http://www.digitaljungle.agency/
 Description: WooCommerce custom payment gateway integration for WeChat Pay via OmiPay.
-Version: 0.0
+Version: 0.1
 */
 
 add_action( 'plugins_loaded', 'wechat_omipay_init', 0 );
