@@ -14,7 +14,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		$this->has_fields = false;
 		
 		$this->method_title = '微信支付'; // checkout option title
-	    $this->method_description='企业版本支持微信原生支付（H5公众号）、微信登录、微信红包推广/促销、微信收货地址同步、微信退款等功能。若需要企业版本，请访问<a href="http://www.wpweixin.net" target="_blank">http://www.wpweixin.net</a> ';
+	    $this->method_description='企业版本支持微信原生支付（H5公众号）、微信登录、微信红包推广/促销、微信收货地址同步、微信退款等功能。若需要企业版本，请访问 ';
 	   
 		$this->init_form_fields ();
 		$this->init_settings ();
@@ -50,42 +50,49 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 	        'description' => array (
 	            'title' => __ ( 'Description', 'wechatpay' ),
 	            'type' => 'textarea',
-	            'description' => __ ( 'This controls the description which the user sees during checkout.', 'wechatpay' ),
+	            'description' => __ ( 'This controls the description which the user sees during checkout. Can be HTML.', 'wechatpay' ),
 	            'default' => __ ( "Pay via WeChatPay, if you don't have an WeChatPay account, you can also pay with your debit card or credit card", 'wechatpay' ),
 	            //'desc_tip' => true ,
-	            'css' => 'width:400px'
+	            // 'css' => 'width:400px'
 	        ),
 	        'wechatpay_appID' => array (
-	            'title' => __ ( 'Application ID', 'wechatpay' ),
-	            'type' => 'text',
-	            'description' => __ ( 'Please enter the Application ID,If you don\'t have one, <a href="https://pay.weixin.qq.com" target="_blank">click here</a> to get.', 'wechatpay' ),
-	            'css' => 'width:400px'
+	            'title' => __ ( '', 'wechatpay' ),
+	            'type' => 'hidden',
+	            'description' => __ ( '', 'wechatpay' ),
+//	            'css' => 'width:400px'
 	        ),
 	        'wechatpay_mchId' => array (
-	            'title' => __ ( 'Merchant ID', 'wechatpay' ),
+	            'title' => __ ( 'OmiPay Merchant ID', 'wechatpay' ),
 	            'type' => 'text',
-	            'description' => __ ( 'Please enter the Merchant ID,If you don\'t have one, <a href="https://pay.weixin.qq.com" target="_blank">click here</a> to get.', 'wechatpay' ),
+	            'description' => __ ( '[Numbers Only] This is the Merchant Number provided by OmiPay when you signed up for an account.', 'wechatpay' ),
 	            'css' => 'width:400px'
 	        ),
 	        'wechatpay_key' => array (
-	            'title' => __ ( 'WeChatPay Key', 'wechatpay' ),
-	            'type' => 'text',
-	            'description' => __ ( 'Please enter your WeChatPay Key; this is needed in order to take payment.', 'wechatpay' ),
-	            'css' => 'width:400px',
+	            'title' => __ ( 'OmiPay API Secret Key', 'wechatpay' ),
+	            'type' => 'password',
+	            'description' => __ ( 'This is the API Secret Key provided by OmiPay when you signed up for an account; this is needed in order to take payment.', 'wechatpay' ),
+	            // 'css' => 'width:400px',
 	            //'desc_tip' => true
 	        ),
 	        'exchange_rate'=> array (
-	            'title' => __ ( 'Exchange Rate', 'wechatpay' ),
-	            'type' => 'text',
+	            'title' => __ ( '', 'wechatpay' ),
+	            'type' => 'hidden',
 	            'default'=>1,
-	            'description' =>  __ ( "Please set current currency against Chinese Yuan exchange rate, eg if your currency is US Dollar, then you should enter 6.19", 'wechatpay' ),
-	            'css' => 'width:80px;',
-	            'desc_tip' => true
-	        )
+	            'description' =>  __ ( "", 'wechatpay' ),
+//	            'css' => 'width:80px;',
+//	            'desc_tip' => true
+	        ),
+            'showing_debug' => array(
+                'title'		=> __( 'Plugin Debug Mode', 'wechat-omipay' ),
+                'label'		=> __( 'Enable Debug Mode', 'wechat-omipay' ),
+                'type'		=> 'checkbox',
+                'description' => __( 'Show Plugin Debugger. [OmiPay has NO test gateway] ', 'wechat-omipay' ),
+                'default'	=> 'no',
+            )
 	    );
 	
 	}
-	
+
 	public function process_payment($order_id) {
 	    $order = new WC_Order ( $order_id );
 	    return array (

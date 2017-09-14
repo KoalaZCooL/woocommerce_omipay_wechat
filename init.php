@@ -1,13 +1,12 @@
 <?php
 /*
- * Plugin Name: WeiXin Payments for WooCommerce
- * Plugin URI: https://www.wpweixin.net/product/201.html
- * Description:给Woocommerce系统添加微信支付功能,支持扫码支付和退款功能。若需要企业版本，请访问<a href="http://www.wpweixin.net" target="_blank">http://www.wpweixin.net</a> 
- * Version: 1.8.3
- * Author: 迅虎网络 
- * Author URI:http://www.wpweixin.net 
- * Text Domain: WeiXin Payments for WooCommerce
- */
+Plugin Name: WeChat Pay - WooCommerce Payment OmiPay Gateway
+Plugin URI: https://github.com/KoalaZCooL/woocommerce_omipay_wechat
+Description: WooCommerce custom payment gateway integration for WeChat Pay via OmiPay. 给Woocommerce系统添加微信支付功能,支持扫码支付和退款功能。若需要企业版本，请访问
+Version: 0.2
+Author URI: http://www.digitaljungle.agency
+Text Domain: WeChat Payments for WooCommerce
+*/
 if (! defined ( 'ABSPATH' ))
 	exit (); // Exit if accessed directly
 
