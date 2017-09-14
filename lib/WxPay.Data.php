@@ -49,23 +49,13 @@ class WechatPaymentDataBase
 	**/
 	public function ToXml()
 	{
-		if(!is_array($this->values) 
+		if(!is_array($this->values)
 			|| count($this->values) <= 0)
 		{
     		throw new WechatPaymentException("数组数据异常！");
     	}
-    	
-    	$xml = "<xml>";
-    	foreach ($this->values as $key=>$val)
-    	{
-    		if (is_numeric($val)){
-    			$xml.="<".$key.">".$val."</".$key.">";
-    		}else{
-    			$xml.="<".$key."><![CDATA[".$val."]]></".$key.">";
-    		}
-        }
-        $xml.="</xml>";
-        return $xml; 
+
+        return http_build_query($this->values);;
 	}
 	
     /**
@@ -198,15 +188,16 @@ class WechatPaymentResults extends WechatPaymentDataBase
      * @throws WechatPaymentException
      */
 	public static function Init($xml)
-	{	
-		$obj = new self();
-		$obj->FromXml($xml);
-		//fix bug 2015-06-29
-		if($obj->values['return_code'] != 'SUCCESS'){
-			 return $obj->GetValues();
-		}
-//		$obj->CheckSign($WxCfg);
-        return $obj->GetValues();
+	{
+	    return (array)json_decode($xml);
+//		$obj = new self();
+//		$obj->FromXml($xml);
+//		//fix bug 2015-06-29
+//		if($obj->values['return_code'] != 'SUCCESS'){
+//			 return $obj->GetValues();
+//		}
+////		$obj->CheckSign($WxCfg);
+//        return $obj->GetValues();
 	}
 }
 
@@ -310,7 +301,7 @@ class WechatPaymentUnifiedOrder extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -318,7 +309,7 @@ class WechatPaymentUnifiedOrder extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -326,8 +317,24 @@ class WechatPaymentUnifiedOrder extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
+
+
+    public function SetSecret_key($value)
+    {
+        $this->values['secret_key'] = $value;
+    }
+
+    public function GetSecret_key()
+    {
+        return $this->values['secret_key'];
+    }
+
+    public function IsSecret_keySet()
+    {
+        return array_key_exists('secret_key', $this->values);
+    }
 
 
 	/**
@@ -785,7 +792,7 @@ class WechatPaymentOrderQuery extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -793,7 +800,7 @@ class WechatPaymentOrderQuery extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -801,7 +808,7 @@ class WechatPaymentOrderQuery extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -923,7 +930,7 @@ class WechatPaymentCloseOrder extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -931,7 +938,7 @@ class WechatPaymentCloseOrder extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -939,7 +946,7 @@ class WechatPaymentCloseOrder extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -1031,11 +1038,11 @@ class WechatPaymentRefund extends WechatPaymentDataBase
 
 	/**
 	* 设置微信支付分配的商户号
-	* @param string $value 
+	* @param string $value
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -1043,7 +1050,7 @@ class WechatPaymentRefund extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -1051,7 +1058,7 @@ class WechatPaymentRefund extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -1328,7 +1335,7 @@ class WechatPaymentRefundQuery extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -1336,7 +1343,7 @@ class WechatPaymentRefundQuery extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -1344,7 +1351,7 @@ class WechatPaymentRefundQuery extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -1543,7 +1550,7 @@ class WechatPaymentDownloadBill extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -1551,7 +1558,7 @@ class WechatPaymentDownloadBill extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -1559,7 +1566,7 @@ class WechatPaymentDownloadBill extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -1706,7 +1713,7 @@ class WechatPaymentReport extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -1714,7 +1721,7 @@ class WechatPaymentReport extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -1722,7 +1729,7 @@ class WechatPaymentReport extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -2078,7 +2085,7 @@ class WechatPaymentShortUrl extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -2086,7 +2093,7 @@ class WechatPaymentShortUrl extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -2094,7 +2101,7 @@ class WechatPaymentShortUrl extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -2190,7 +2197,7 @@ class WechatPaymentMicroPay extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -2198,7 +2205,7 @@ class WechatPaymentMicroPay extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -2206,7 +2213,7 @@ class WechatPaymentMicroPay extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -2587,7 +2594,7 @@ class WechatPaymentReverse extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -2595,7 +2602,7 @@ class WechatPaymentReverse extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -2603,7 +2610,7 @@ class WechatPaymentReverse extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 
 
@@ -2725,7 +2732,7 @@ class WechatPaymentJsApiPay extends WechatPaymentDataBase
 	**/
 	public function SetTimeStamp($value)
 	{
-		$this->values['timeStamp'] = $value;
+		$this->values['timestamp'] = $value;
 	}
 	/**
 	* 获取支付时间戳的值
@@ -2733,7 +2740,7 @@ class WechatPaymentJsApiPay extends WechatPaymentDataBase
 	**/
 	public function GetTimeStamp()
 	{
-		return $this->values['timeStamp'];
+		return $this->values['timestamp'];
 	}
 	/**
 	* 判断支付时间戳是否存在
@@ -2741,7 +2748,7 @@ class WechatPaymentJsApiPay extends WechatPaymentDataBase
 	**/
 	public function IsTimeStampSet()
 	{
-		return array_key_exists('timeStamp', $this->values);
+		return array_key_exists('timestamp', $this->values);
 	}
 	
 	/**
@@ -2886,7 +2893,7 @@ class WechatPaymentBizPayUrl extends WechatPaymentDataBase
 	**/
 	public function SetMch_id($value)
 	{
-		$this->values['mch_id'] = $value;
+		$this->values['m_number'] = $value;
 	}
 	/**
 	* 获取微信支付分配的商户号的值
@@ -2894,7 +2901,7 @@ class WechatPaymentBizPayUrl extends WechatPaymentDataBase
 	**/
 	public function GetMch_id()
 	{
-		return $this->values['mch_id'];
+		return $this->values['m_number'];
 	}
 	/**
 	* 判断微信支付分配的商户号是否存在
@@ -2902,7 +2909,7 @@ class WechatPaymentBizPayUrl extends WechatPaymentDataBase
 	**/
 	public function IsMch_idSet()
 	{
-		return array_key_exists('mch_id', $this->values);
+		return array_key_exists('m_number', $this->values);
 	}
 	
 	/**
