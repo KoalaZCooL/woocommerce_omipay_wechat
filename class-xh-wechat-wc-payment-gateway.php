@@ -275,31 +275,20 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 	    
         echo '<p>' . __ ( 'Please scan the QR code with WeChat to finish the payment.', 'wechatpay' ) . '</p>';
 
-		$input = new WechatPaymentUnifiedOrder ();
-		$input->SetBody ($this->get_order_title($order) );
-	
-		$input->SetAttach ( $order_id );
-		$input->SetOut_trade_no ( md5(date ( "YmdHis" ).$order_id ));    
-		$total = $order->get_total ();
-        
-		$exchange_rate = floatval($this->get_option('exchange_rate'));
-		if($exchange_rate<=0){
-		    $exchange_rate=1;
-		}
-		
-		$total = round ($total * $exchange_rate, 2 );
-        $totalFee = ( int ) ($total * 100);
-        
-		$input->SetTotal_fee ( $totalFee );
-		
-		$date = new DateTime ();
-		$date->setTimezone ( new DateTimeZone ( 'Asia/Shanghai' ) );
-		$startTime = $date->format ( 'YmdHis' );
-		$input->SetTime_start ( $startTime );
-		$input->SetNotify_url (get_option('siteurl') );
-	
-		$input->SetTrade_type ( "NATIVE" );
-		$input->SetProduct_id ($order_id );
+		$SetOut_trade_no = md5(date ( "YmdHis" ).$order_id );
+
+        $input = [
+            'order_name'    => get_option('siteurl').'_Checkout_Order',
+            'amount'        => ( int ) ($order->get_total () * 100), #in CENTS AUD
+
+            #Notification URL for transaction success.
+            #When this order is pay succeed, will send a notification to such URL.
+            'notify_url'    => 'http://www.digitaljunglegroup.com/test/omipay_notif_stream.php',
+
+            #The notification data of transaction would include this field.
+            #So, it best be unique, in order to identify the order.
+            'out_order_no'  => 'out order to omipay okay got it'
+        ];
 		try {
 		    $result = WechatPaymentApi::unifiedOrder ( $input, 60, $this->config );
 		} catch (Exception $e) {
@@ -314,7 +303,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		    return;
 		}
 		
-		$url =isset($result['code_url'])? $result ["code_url"]:'';
+		$url = isset($result['qrcode'])? $result ["qrcode"]:'';
 		echo  '<input type="hidden" id="xh-wechat-payment-pay-url" value="'.$url.'"/>';
 		echo  '<div style="width:200px;height:200px" id="xh-wechat-payment-pay-img" data-oid="'.$order_id.'"></div>';
 	}

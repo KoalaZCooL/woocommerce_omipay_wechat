@@ -24,41 +24,10 @@ class WechatPaymentApi
 	 */
 	public static function unifiedOrder($inputObj, $timeOut = 60,$WxCfg)
 	{
-		$url = "https://api.mch.weixin.qq.com/pay/unifiedorder";
-		//检测必填参数
-		if(!$inputObj->IsOut_trade_noSet()) {
-			throw new WechatPaymentException("缺少统一支付接口必填参数out_trade_no！");
-		}else if(!$inputObj->IsBodySet()){
-			throw new WechatPaymentException("缺少统一支付接口必填参数body！");
-		}else if(!$inputObj->IsTotal_feeSet()) {
-			throw new WechatPaymentException("缺少统一支付接口必填参数total_fee！");
-		}else if(!$inputObj->IsTrade_typeSet()) {
-			throw new WechatPaymentException("缺少统一支付接口必填参数trade_type！");
-		}
-		
-		//关联参数
-		if($inputObj->GetTrade_type() == "JSAPI" && !$inputObj->IsOpenidSet()){
-			throw new WechatPaymentException("统一支付接口中，缺少必填参数openid！trade_type为JSAPI时，openid为必填参数！");
-		}
-		if($inputObj->GetTrade_type() == "NATIVE" && !$inputObj->IsProduct_idSet()){
-			throw new WechatPaymentException("统一支付接口中，缺少必填参数product_id！trade_type为JSAPI时，product_id为必填参数！");
-		}
-		
-		//异步通知url未设置，则使用配置文件中的url
-		if(!$inputObj->IsNotify_urlSet()){
-			$inputObj->SetNotify_url('');//异步通知url
-		}
-		
-		$inputObj->SetAppid($WxCfg->getAPPID());//公众账号ID
-		$inputObj->SetMch_id($WxCfg->getMCHID());//商户号
-		//$inputObj->SetSpbill_create_ip($_SERVER['REMOTE_ADDR']);//终端ip
-		//$inputObj->SetSpbill_create_ip("1.1.1.1");  	    
-		$inputObj->SetNonce_str(self::getNonceStr());//随机字符串
-		//签名
-        $inputObj->SetSign($WxCfg);
-        $xml = $inputObj->ToXml();
+		$url = "https://www.omipay.com.au/omipay/api/v1/MakeQROrder";
+
 		$startTimeStamp = self::getMillisecond();//请求开始时间
-		$response = self::postXmlCurl($xml, $url, false, $timeOut,$WxCfg);
+		$response = self::postXmlCurl($inputObj, $url, false, $timeOut,$WxCfg, []);
 		$result = WechatPaymentResults::Init($response,$WxCfg);
 		self::reportCostTime($url, $startTimeStamp, $result,$WxCfg);//上报请求花费时间
 		
@@ -141,7 +110,7 @@ class WechatPaymentApi
      */
     public static function orderQuery($inputObj, $WxCfg,$timeOut = 60)
     {
-        $url = "https://api.mch.weixin.qq.com/pay/orderquery";
+        $url = "https://www.omipay.com.au/omipay/api/v1/QueryOrder";
         //检测必填参数
         if(!$inputObj->IsOut_trade_noSet() && !$inputObj->IsTransaction_idSet()) {
             throw new WechatPaymentException("订单查询接口中，out_trade_no、transaction_id至少填一个！");
@@ -262,46 +231,47 @@ class WechatPaymentApi
 	 * @throws WechatPaymentException
 	 */
 	private static function postXmlCurl($xml, $url, $useCert = false, $second = 60,$WxCfg)
-	{		
-		$ch = curl_init();
-		//设置超时
-		curl_setopt($ch, CURLOPT_TIMEOUT, $second);
-		
-		//如果有配置代理这里就设置代理
-		if($WxCfg->isEnableProxy()){
-			curl_setopt($ch,CURLOPT_PROXY, $WxCfg->getCURLPROXYHOST());
-			curl_setopt($ch,CURLOPT_PROXYPORT, $WxCfg->getCURLPROXYPORT());
-		}
-		curl_setopt($ch,CURLOPT_URL, $url);
-		curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,false);
-        //curl_setopt($ch,CURLOPT_SSL_VERIFYPEER,TRUE);
-	//	curl_setopt($ch,CURLOPT_SSL_VERIFYHOST,2);//严格校验
-		//设置header
-		curl_setopt($ch, CURLOPT_HEADER, FALSE);
-		//要求结果为字符串且输出到屏幕上
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+	{
+        $date = new DateTime ();
+        $date->setTimezone ( new DateTimeZone ( 'EST' ) );
+        $timestamp = $date->format ( 'Uv' );
 
-		if($useCert == true){
-			//设置证书
-			//使用证书：cert 与 key 分别属于两个.pem文件
-			curl_setopt($ch,CURLOPT_SSLCERTTYPE,'PEM');
-			curl_setopt($ch,CURLOPT_SSLCERT, $WxCfg->getSSLCERTPATH());
-			curl_setopt($ch,CURLOPT_SSLKEYTYPE,'PEM');
-			curl_setopt($ch,CURLOPT_SSLKEY,$WxCfg->getSSLKEYPATH());
-		}
-		//post提交方式
-		curl_setopt($ch, CURLOPT_POST, TRUE);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $xml);
-		//运行curl
-		$data = curl_exec($ch);
+        $nonce_str = self::getNonceStr();
+
+        $sign = self::gen_signature($timestamp, $WxCfg, $nonce_str);
+        $verifying_sig = [
+            'm_number'  => $WxCfg->getMCHID(),
+            'timestamp' => $timestamp,
+            'nonce_str' => $nonce_str,
+            'sign'      => $sign
+        ];
+
+        $gateway_params = http_build_query(array_merge($verifying_sig,$xml));
+
+        $gateway_request_url = $url.'?'.$gateway_params;
+
+        $data = wp_remote_post( $gateway_request_url, array(
+            'method'    => 'POST',
+            'headers'   => array("Content-type" => "application/json;charset=UTF-8"),
+            'timeout'   => 90,
+            'sslverify' => false,
+        ) );
+
+        if ( is_wp_error( $data ) )
+            throw new WechatPaymentException('There is issue for connecting payment gateway. Sorry for the inconvenience.');
+
+        if ( empty( $data['body'] ) )
+            throw new WechatPaymentException('OmiPay\'s Response was not getting any data.');
+
+        // get body response while get not error
+        // eg. {"return_code":"SUCCESS","order_no":"WE1709125547112092","qrcode":"weixin://wxpay/bizpayurl?pr=edxyXOf"}
+        $response_body = (wp_remote_retrieve_body($data) );
+
 		//返回结果
-		if($data){
-			curl_close($ch);
-			return $data;
+		if($response_body){
+			return $response_body;
 		} else {
-			$error = curl_error($ch);
-			curl_close($ch);
-			throw new WechatPaymentException("curl出错，错误码:$error");
+			throw new WechatPaymentException("curl出错，错误码:");
 		}
 	}
 	
@@ -359,5 +329,11 @@ class WechatPaymentApi
 		$time = $time2[0];
 		return $time;
 	}
+
+    public static function gen_signature($timestamp, $WxCfg, $nonce)
+    {
+        $gen_sig = strtoupper(md5("{$WxCfg->getMCHID()}&{$timestamp}&{$nonce}&{$WxCfg->getKEY()}") );
+        return $gen_sig;
+    }
 }
 
