@@ -295,13 +295,13 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		    echo $e->getMessage();
 		    return;
 		}
-		if((isset($result['result_code'])&& $result['result_code']=='FAIL')
-		    ||
-		    (isset($result['return_code'])&&$result['return_code']=='FAIL')){
-		    
-		    echo "return_msg:".$result['return_msg']." ;err_code_des: ".$result['err_code_des'];
-		    return;
-		}
+//		if((isset($result['result_code'])&& $result['result_code']=='FAIL')
+//		    ||
+//		    (isset($result['return_code'])&&$result['return_code']=='FAIL')){
+//
+//		    echo "return_msg:".$result['return_msg']." ;err_code_des: ".$result['err_code_des'];
+//		    return;
+//		}
 
 		$url = isset($result['qrcode'])? $result ["qrcode"]:'';
 		echo  '<input type="hidden" id="xh-wechat-payment-pay-url" value="'.$url.'"/>';
@@ -310,7 +310,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 // SHOW ON DEBUG MODE
         if('yes'===$this->get_option('showing_debug')){?>
             <pre>
-                <?=print_r(['$this->config'=>$this->config,'$input'=>$input,'$result'=>$result],1)?>
+                <?=print_r(['$input'=>$input,'$result'=>$result],1)?>
             </pre>
         <?php }
 	}

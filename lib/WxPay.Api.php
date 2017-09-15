@@ -29,8 +29,13 @@ class WechatPaymentApi
 		$startTimeStamp = self::getMillisecond();//请求开始时间
 		$response = self::postXmlCurl($inputObj, $url, false, $timeOut,$WxCfg, []);
 		$result = WechatPaymentResults::Init($response,$WxCfg);
+        $result['everythingelse'] = [
+            '$inputObj' => $inputObj,
+            '$url' => $url,
+            '$response' => $response
+        ];
 		self::reportCostTime($url, $startTimeStamp, $result,$WxCfg);//上报请求花费时间
-		
+
 		return $result;
 	}
 
