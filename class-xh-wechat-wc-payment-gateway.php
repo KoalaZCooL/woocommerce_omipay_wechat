@@ -309,7 +309,8 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 
 // SHOW ON DEBUG MODE
         if('yes'===$this->get_option('showing_debug')){?>
-            <pre>
+            <p><span style="color: blue">debug mode on</span></p>
+            <pre style="diplay:none;">
                 <?=print_r(array('$input'=>$input,'$result'=>$result),1)?>
             </pre>
         <?php }
