@@ -123,19 +123,19 @@ class WechatPaymentApi
     public static function orderQuery($inputObj, $WxCfg,$timeOut = 60)
     {
         $url = "https://www.omipay.com.au/omipay/api/v1/QueryOrder";
-        //检测必填参数
-        if(!$inputObj->IsOut_trade_noSet() && !$inputObj->IsTransaction_idSet()) {
-            throw new WechatPaymentException("订单查询接口中，out_trade_no、transaction_id至少填一个！");
-        }
-        $inputObj->SetAppid($WxCfg->getAPPID());//公众账号ID
-        $inputObj->SetMch_id($WxCfg->getMCHID());//商户号
-        $inputObj->SetNonce_str(self::getNonceStr());//随机字符串
-
-        $inputObj->SetSign($WxCfg);//签名
-        $xml = $inputObj->ToXml();
+//        //检测必填参数
+//        if(!$inputObj->IsOut_trade_noSet() && !$inputObj->IsTransaction_idSet()) {
+//            throw new WechatPaymentException("订单查询接口中，out_trade_no、transaction_id至少填一个！");
+//        }
+//        $inputObj->SetAppid($WxCfg->getAPPID());//公众账号ID
+//        $inputObj->SetMch_id($WxCfg->getMCHID());//商户号
+//        $inputObj->SetNonce_str(self::getNonceStr());//随机字符串
+//
+//        $inputObj->SetSign($WxCfg);//签名
+//        $xml = $inputObj->ToXml();
 
         $startTimeStamp = self::getMillisecond();//请求开始时间
-        $response = self::postXmlCurl($xml, $url, false, $timeOut,$WxCfg);
+        $response = self::postXmlCurl($inputObj, $url, false, $timeOut,$WxCfg);
         $result = WechatPaymentResults::Init($response,$WxCfg);
         self::reportCostTime($url, $startTimeStamp, $result,$WxCfg);//上报请求花费时间
 

@@ -2,8 +2,8 @@
 /*
 Plugin Name: WeChat Pay - WooCommerce Payment OmiPay Gateway
 Plugin URI: https://github.com/KoalaZCooL/woocommerce_omipay_wechat
-Description: WooCommerce custom payment gateway integration for WeChat Pay via OmiPay. 给Woocommerce系统添加微信支付功能,支持扫码支付和退款功能。若需要企业版本，请访问
-Version: 0.3
+Description: WeChat Pay via OmiPay for WooCommerce custom payment gateway integration. 给Woocommerce系统添加微信支付功能,支持扫码支付和退款功能。若需要企业版本，请访问
+Version: 1.0.0
 Author URI: http://www.digitaljungle.agency
 Text Domain: WeChat Payments for WooCommerce
 */

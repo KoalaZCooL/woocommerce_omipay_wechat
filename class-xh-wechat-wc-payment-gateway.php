@@ -136,13 +136,38 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		$order_id = isset($_POST ['orderId'])?$_POST ['orderId']:'';
 		$order = new WC_Order ( $order_id );
 		$isPaid = ! $order->needs_payment ();
-	
-		echo json_encode ( array (
-		    'status' =>$isPaid? 'paid':'unpaid',
-		    'url' => $this->get_return_url ( $order )
-		));
-		
-		exit;
+//
+//		echo json_encode ( array (
+//		    'status' =>$isPaid? 'paid':'unpaid',
+//		    'url' => $this->get_return_url ( $order ),
+//            'body' => print_r($order,1)
+//		));
+//
+//		exit;
+
+        $OmiPayOrderNo = $this->get_private_order_notes($order_id);
+        $OmiPayOrderNo = str_replace('OmiPayWeiXin_order_no_','', $OmiPayOrderNo);
+        //"order_no":"WE1709157514475751"
+        $input = array('order_no'=> $OmiPayOrderNo);
+        try {
+
+            $query_result = WechatPaymentApi::orderQuery ( $input, $this->config );
+
+            if('PAYED'===$query_result['result_code'] ||'CLOSED'===$query_result['result_code'] ){
+                $order->payment_complete();
+                $isPaid = 1;
+            }
+            echo json_encode ( array (
+                'status' =>$isPaid? 'paid':'unpaid',
+                'url' => $this->get_return_url ( $order ),
+                '$OmiPayOrderNo' => $OmiPayOrderNo,
+                '$query_result' => serialize($query_result)
+            ));
+
+            exit;
+        } catch ( WechatPaymentException $e ) {
+            return;
+        }
 	}
 	
 	function wp_enqueue_scripts() {
@@ -158,7 +183,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 			}
 		}
 	}
-	
+
 	public function check_wechatpay_response() {
 	    if(defined('WP_USE_THEMES')&&!WP_USE_THEMES){
 	        return;
@@ -167,33 +192,33 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		if(empty($xml)){
 		    return ;
 		}
-		
+
 		// 如果返回成功则验证签名
 		try {
 		    $result = WechatPaymentResults::Init ( $xml );
 		    if (!$result||! isset($result['transaction_id'])) {
 		        return;
 		    }
-		    
+
 		    $transaction_id=$result ["transaction_id"];
 		    $order_id = $result['attach'];
-		    
+
 		    $input = new WechatPaymentOrderQuery ();
 		    $input->SetTransaction_id ( $transaction_id );
 		    $query_result = WechatPaymentApi::orderQuery ( $input, $this->config );
 		    if ($query_result['result_code'] == 'FAIL' || $query_result['return_code'] == 'FAIL') {
                 throw new Exception(sprintf("return_msg:%s ;err_code_des:%s "), $query_result['return_msg'], $query_result['err_code_des']);
             }
-            
+
             if(!(isset($query_result['trade_state'])&& $query_result['trade_state']=='SUCCESS')){
                 throw new Exception("order not paid!");
             }
-		  
+
 		    $order = new WC_Order ( $order_id );
 		    if($order->needs_payment()){
 		          $order->payment_complete ($transaction_id);
 		    }
-		    
+
 		    $reply = new WechatPaymentNotifyReply ();
 		    $reply->SetReturn_code ( "SUCCESS" );
 		    $reply->SetReturn_msg ( "OK" );
@@ -272,7 +297,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 	        wp_redirect($this->get_return_url($order));
 	        exit;
 	    }
-	    
+
         echo '<p>' . __ ( 'Please scan the QR code with WeChat to finish the payment.', 'wechatpay' ) . '</p>';
 
 		$SetOut_trade_no = md5(date ( "YmdHis" ).$order_id );
@@ -283,14 +308,16 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 
             #Notification URL for transaction success.
             #When this order is pay succeed, will send a notification to such URL.
-            'notify_url'    => urlencode('http://www.digitaljunglegroup.com/test/omipay_notif_stream.php'),
+            'notify_url'    => ('http://www.digitaljunglegroup.com/test/omipay_notif_stream.php'),
 
             #The notification data of transaction would include this field.
             #So, it best be unique, in order to identify the order.
             'out_order_no'  => '749351'
         );
+
 		try {
 		    $result = WechatPaymentApi::unifiedOrder ( $input, 60, $this->config );
+            $order->add_order_note("OmiPayWeiXin_order_no_{$result['order_no']}");
 		} catch (Exception $e) {
 		    echo $e->getMessage();
 		    return;
@@ -315,6 +342,23 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
             </pre>
         <?php }
 	}
-}
 
-?>
+	private function get_private_order_notes( $order_id){
+        global $wpdb;
+
+        $table_perfixed = $wpdb->prefix . 'comments';
+        $results = $wpdb->get_results("
+            SELECT *
+            FROM $table_perfixed
+            WHERE  `comment_post_ID` = $order_id
+            AND  `comment_type` LIKE  'order_note'
+            ORDER BY `comment_ID` ASC
+            LIMIT 1
+        ");
+
+        foreach($results as $note){
+            $order_note  = $note->comment_content;
+        }
+        return $order_note;
+    }
+}
