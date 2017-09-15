@@ -98,7 +98,7 @@ class WechatPaymentApi
 		
 		$inputObj->SetAppid($WxCfg->getAPPID());//公众账号ID
 		$inputObj->SetMch_id($WxCfg->getMCHID());//商户号
-		$inputObj->SetTime_stamp(time());//时间戳	 
+		$inputObj->SetTime_stamp(round(microtime(true) * 1000));//时间戳
 		$inputObj->SetNonce_str(self::getNonceStr());//随机字符串
 		
 		$inputObj->SetSign($WxCfg);//签名
@@ -239,9 +239,16 @@ class WechatPaymentApi
 	 */
 	private static function postXmlCurl($xml, $url, $useCert = false, $second = 60,$WxCfg)
 	{
-        $date = new DateTime ();
-        $date->setTimezone ( new DateTimeZone ( 'EST' ) );
-        $timestamp = $date->format ( 'Uv' );
+        $TZ_orig = date_default_timezone_get();
+
+        #MAKE EST
+        date_default_timezone_set('EST');
+
+        #MAKEMILLISECOND
+        $timestamp = round(microtime(true) * 1000);
+
+        #REVERT TZ ORIG
+        date_default_timezone_set($TZ_orig);
 
         $nonce_str = self::getNonceStr();
 
