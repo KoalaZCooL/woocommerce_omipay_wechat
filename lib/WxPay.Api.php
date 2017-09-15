@@ -260,19 +260,12 @@ class WechatPaymentApi
             'sign'      => $sign
         );
 
-        $gateway_arrays = array_merge($verifying_sig,$xml);
-        $gateway_params = implode('&', array_map(
-            function ($v, $k) {
-                if(is_int($v)){
-                    return sprintf("%s=%s", $k, $v);
-                }
-                return sprintf("%s='%s'", $k, $v);
-            },
-            $gateway_arrays,
-            array_keys($gateway_arrays)
-        ));
-
-        $gateway_request_url = $url.'?'.$gateway_params;
+        $url = 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate';
+        $gateway_request_url = $url.'?'
+            .'m_number='.$WxCfg->getMCHID()
+            .'&timestamp='.$timestamp
+            .'&nonce_str='.$nonce_str
+            .'&sign='.$sign;
 
         $data = wp_remote_post( $gateway_request_url, array(
             'method'    => 'POST',
@@ -292,8 +285,8 @@ class WechatPaymentApi
 		//返回结果
 		if($data){
 		    $data[''] = array(
-		        '$gateway_arrays' => $gateway_arrays,
-                '$gateway_params' => $gateway_params,
+		        '$verifying_sig' => $verifying_sig,
+                '$xml' => $xml,
                 '$gateway_request_url' => $gateway_request_url
             );
 			return $data;
