@@ -9,6 +9,7 @@
             }
         }).done(function (data) {
             data = JSON.parse(data);
+            console.log('XH_WECHAT_PAYMENT_GET_ORDER',data);
             if (data && data.status === "paid") {
                 location.href = data.url;
             } else {

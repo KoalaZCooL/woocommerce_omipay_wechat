@@ -24,6 +24,7 @@ class WechatPaymentApi
 	 */
 	public static function unifiedOrder($inputObj, $timeOut = 60,$WxCfg)
 	{
+        $exchange = self::postXmlCurl([], 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate', false, $timeOut,$WxCfg, []);
 		$url = "https://www.omipay.com.au/omipay/api/v1/MakeQROrder";
 
 		$startTimeStamp = self::getMillisecond();//请求开始时间
@@ -32,7 +33,8 @@ class WechatPaymentApi
         $result['everythingelse'] = [
             '$inputObj' => $inputObj,
             '$url' => $url,
-            '$response' => $response
+            '$response' => $response,
+            '$exchange' => $exchange
         ];
 		self::reportCostTime($url, $startTimeStamp, $result,$WxCfg);//上报请求花费时间
 
