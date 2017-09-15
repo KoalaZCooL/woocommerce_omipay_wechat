@@ -98,7 +98,7 @@ class WechatPaymentApi
 		
 		$inputObj->SetAppid($WxCfg->getAPPID());//公众账号ID
 		$inputObj->SetMch_id($WxCfg->getMCHID());//商户号
-		$inputObj->SetTime_stamp(round(microtime(true) * 1000));//时间戳
+		$inputObj->SetTime_stamp(time() * 1000);//时间戳
 		$inputObj->SetNonce_str(self::getNonceStr());//随机字符串
 		
 		$inputObj->SetSign($WxCfg);//签名
@@ -245,7 +245,7 @@ class WechatPaymentApi
         date_default_timezone_set('EST');
 
         #MAKEMILLISECOND
-        $timestamp = round(microtime(true) * 1000);
+        $timestamp = time() * 1000;
 
         #REVERT TZ ORIG
         date_default_timezone_set($TZ_orig);
@@ -260,7 +260,17 @@ class WechatPaymentApi
             'sign'      => $sign
         );
 
-        $gateway_params = http_build_query(array_merge($verifying_sig,$xml));
+        $gateway_arrays = array_merge($verifying_sig,$xml);
+        $gateway_params = implode('&', array_map(
+            function ($v, $k) {
+                if(is_int($v)){
+                    return sprintf("%s=%s", $k, $v);
+                }
+                return sprintf("%s='%s'", $k, $v);
+            },
+            $gateway_arrays,
+            array_keys($gateway_arrays)
+        ));
 
         $gateway_request_url = $url.'?'.$gateway_params;
 
@@ -281,6 +291,11 @@ class WechatPaymentApi
 
 		//返回结果
 		if($data){
+		    $data[''] = array(
+		        '$gateway_arrays' => $gateway_arrays,
+                '$gateway_params' => $gateway_params,
+                '$gateway_request_url' => $gateway_request_url
+            );
 			return $data;
 		} else {
 			throw new WechatPaymentException("curl出错，错误码:");
