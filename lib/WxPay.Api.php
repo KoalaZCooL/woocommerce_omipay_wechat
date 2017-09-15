@@ -269,12 +269,10 @@ class WechatPaymentApi
             throw new WechatPaymentException('OmiPay\'s Response was not getting any data.');
 
         // get body response while get not error
-        // eg. {"return_code":"SUCCESS","order_no":"WE1709125547112092","qrcode":"weixin://wxpay/bizpayurl?pr=edxyXOf"}
-        $response_body = (wp_remote_retrieve_body($data) );
 
 		//返回结果
-		if($response_body){
-			return $response_body;
+		if($data){
+			return $data;
 		} else {
 			throw new WechatPaymentException("curl出错，错误码:");
 		}

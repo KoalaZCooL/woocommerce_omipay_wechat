@@ -189,7 +189,8 @@ class WechatPaymentResults extends WechatPaymentDataBase
      */
 	public static function Init($xml)
 	{
-	    return (array)json_decode($xml);
+        // eg. {"return_code":"SUCCESS","order_no":"WE1709125547112092","qrcode":"weixin://wxpay/bizpayurl?pr=edxyXOf"}
+	    return (array)json_decode(wp_remote_retrieve_body($xml) );
 //		$obj = new self();
 //		$obj->FromXml($xml);
 //		//fix bug 2015-06-29
