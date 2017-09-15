@@ -302,10 +302,17 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 		    echo "return_msg:".$result['return_msg']." ;err_code_des: ".$result['err_code_des'];
 		    return;
 		}
-		
+
 		$url = isset($result['qrcode'])? $result ["qrcode"]:'';
 		echo  '<input type="hidden" id="xh-wechat-payment-pay-url" value="'.$url.'"/>';
 		echo  '<div style="width:200px;height:200px" id="xh-wechat-payment-pay-img" data-oid="'.$order_id.'"></div>';
+
+// SHOW ON DEBUG MODE
+        if('yes'===$this->get_option('showing_debug')){?>
+            <pre>
+                <?=print_r(['$this->config'=>$this->config,'$input'=>$input,'$result'=>$result],1)?>
+            </pre>
+        <?php }
 	}
 }
 
