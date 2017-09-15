@@ -24,18 +24,18 @@ class WechatPaymentApi
 	 */
 	public static function unifiedOrder($inputObj, $timeOut = 60,$WxCfg)
 	{
-        $exchange = self::postXmlCurl([], 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate', false, $timeOut,$WxCfg, []);
+        $exchange = self::postXmlCurl(array(), 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate', false, $timeOut,$WxCfg, array());
 		$url = "https://www.omipay.com.au/omipay/api/v1/MakeQROrder";
 
 		$startTimeStamp = self::getMillisecond();//请求开始时间
-		$response = self::postXmlCurl($inputObj, $url, false, $timeOut,$WxCfg, []);
+		$response = self::postXmlCurl($inputObj, $url, false, $timeOut,$WxCfg, array());
 		$result = WechatPaymentResults::Init($response,$WxCfg);
-        $result['everythingelse'] = [
+        $result['everythingelse'] = array(
             '$inputObj' => $inputObj,
             '$url' => $url,
             '$response' => $response,
             '$exchange' => $exchange
-        ];
+        );
 		self::reportCostTime($url, $startTimeStamp, $result,$WxCfg);//上报请求花费时间
 
 		return $result;
@@ -246,12 +246,12 @@ class WechatPaymentApi
         $nonce_str = self::getNonceStr();
 
         $sign = self::gen_signature($timestamp, $WxCfg, $nonce_str);
-        $verifying_sig = [
+        $verifying_sig = array(
             'm_number'  => $WxCfg->getMCHID(),
             'timestamp' => $timestamp,
             'nonce_str' => $nonce_str,
             'sign'      => $sign
-        ];
+        );
 
         $gateway_params = http_build_query(array_merge($verifying_sig,$xml));
 

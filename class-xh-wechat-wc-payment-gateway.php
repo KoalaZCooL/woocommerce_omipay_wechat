@@ -277,18 +277,18 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 
 		$SetOut_trade_no = md5(date ( "YmdHis" ).$order_id );
 
-        $input = [
-            'order_name'    => get_option('siteurl').'_Checkout_Order',
+        $input = array(
+            'order_name'    => 'WHA_Checkout_Order',
             'amount'        => ( int ) ($order->get_total () * 100), #in CENTS AUD
 
             #Notification URL for transaction success.
             #When this order is pay succeed, will send a notification to such URL.
-            'notify_url'    => 'http://www.digitaljunglegroup.com/test/omipay_notif_stream.php',
+            'notify_url'    => urlencode('http://www.digitaljunglegroup.com/test/omipay_notif_stream.php'),
 
             #The notification data of transaction would include this field.
             #So, it best be unique, in order to identify the order.
-            'out_order_no'  => 'out order to omipay okay got it'
-        ];
+            'out_order_no'  => '749351'
+        );
 		try {
 		    $result = WechatPaymentApi::unifiedOrder ( $input, 60, $this->config );
 		} catch (Exception $e) {
@@ -310,7 +310,7 @@ class XHWechatWCPaymentGateway extends WC_Payment_Gateway {
 // SHOW ON DEBUG MODE
         if('yes'===$this->get_option('showing_debug')){?>
             <pre>
-                <?=print_r(['$input'=>$input,'$result'=>$result],1)?>
+                <?=print_r(array('$input'=>$input,'$result'=>$result),1)?>
             </pre>
         <?php }
 	}
