@@ -254,18 +254,15 @@ class WechatPaymentApi
 
         $sign = self::gen_signature($timestamp, $WxCfg, $nonce_str);
         $verifying_sig = array(
-            'm_number'  => $WxCfg->getMCHID(),
+            'm_number'  => ((string)trim($WxCfg->getMCHID())),
             'timestamp' => $timestamp,
             'nonce_str' => $nonce_str,
             'sign'      => $sign
         );
 
-        $url = 'https://www.omipay.com.au/omipay/api/v1/GetExchangeRate';
-        $gateway_request_url = $url.'?'
-            .'m_number='.$WxCfg->getMCHID()
-            .'&timestamp='.$timestamp
-            .'&nonce_str='.$nonce_str
-            .'&sign='.$sign;
+        $gateway_params = http_build_query(array_merge($verifying_sig,$xml));
+
+        $gateway_request_url = $url.'?'.$gateway_params;
 
         $data = wp_remote_post( $gateway_request_url, array(
             'method'    => 'POST',
@@ -352,7 +349,9 @@ class WechatPaymentApi
 
     public static function gen_signature($timestamp, $WxCfg, $nonce)
     {
-        $gen_sig = strtoupper(md5("{$WxCfg->getMCHID()}&{$timestamp}&{$nonce}&{$WxCfg->getKEY()}") );
+        $m_number = ((string)trim($WxCfg->getMCHID()));
+        $key = ((string)trim($WxCfg->getKEY()));
+        $gen_sig = strtoupper(md5("{$m_number}&{$timestamp}&{$nonce}&{$key}") );
         return $gen_sig;
     }
 }
